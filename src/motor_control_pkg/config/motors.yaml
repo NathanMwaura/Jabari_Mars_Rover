@@ -1,0 +1,10 @@
+left_primary_driver:
+  ros__parameters:
+    speed_topic: "/motor/left_speed"
+    en_a: 12
+    in1: 17
+    in2: 27
+    en_b: 13
+    in3: 22
+    in4: 23
+

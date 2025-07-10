@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2 Robot Web Interface</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <h1><i class="fas fa-robot"></i> ROS2 Robot Interface</h1>
+            </div>
+            <div class="system-status">
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-indicator" id="statusIndicator"></div>
+                    <span id="statusText">Connecting...</span>
+                </div>
+                <div class="system-time" id="systemTime"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="main-layout">
+            <!-- Camera Section -->
+            <section class="camera-section">
+                <div class="card">
+                    <h3><i class="fas fa-video"></i> Camera Feed</h3>
+                    <div class="camera-container">
+                        <div class="camera-feed" id="cameraFeed">
+                            <div class="camera-placeholder">
+                                <i class="fas fa-camera" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                                <p>Camera feed will appear here</p>
+                                <p style="font-size: 0.9rem; color: var(--text-secondary);">Demo Mode Active</p>
+                            </div>
+                        </div>
+                        <div class="camera-overlay">
+                            <span id="cameraStatus">Camera: Demo Mode</span>
+                        </div>
+                    </div>
+                    <div class="camera-controls">
+                        <button class="btn" id="captureBtn">
+                            <i class="fas fa-camera"></i> Capture
+                        </button>
+                        <button class="btn" id="recordBtn">
+                            <i class="fas fa-video"></i> Record
+                        </button>
+                        <button class="btn" id="fullscreenBtn">
+                            <i class="fas fa-expand"></i> Fullscreen
+                        </button>
+                        <select class="btn" id="qualitySelect">
+                            <option value="high">High Quality</option>
+                            <option value="medium" selected>Medium Quality</option>
+                            <option value="low">Low Quality</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Controls Section -->
+            <section class="controls-section">
+                <div class="card">
+                    <h3><i class="fas fa-gamepad"></i> Pan-Tilt Control</h3>
+                    <div class="pan-tilt-controls">
+                        <div class="joystick-container" id="joystickContainer">
+                            <div class="joystick" id="joystick"></div>
+                        </div>
+                        <div class="preset-positions">
+                            <button class="btn" data-position="home">
+                                <i class="fas fa-home"></i> Home
+                            </button>
+                            <button class="btn" data-position="left">
+                                <i class="fas fa-arrow-left"></i> Left
+                            </button>
+                            <button class="btn" data-position="right">
+                                <i class="fas fa-arrow-right"></i> Right
+                            </button>
+                        </div>
+                        <div class="position-values">
+                            <div class="value-display">
+                                <label>Pan:</label>
+                                <span id="panValue">0°</span>
+                            </div>
+                            <div class="value-display">
+                                <label>Tilt:</label>
+                                <span id="tiltValue">0°</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Robot Movement Controls -->
+                <div class="card" style="margin-top: 20px;">
+                    <h3><i class="fas fa-arrows-alt"></i> Robot Movement</h3>
+                    <div class="robot-controls">
+                        <div class="movement-controls">
+                            <button class="btn" id="turnLeftBtn">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            <button class="btn" id="forwardBtn">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                            <button class="btn" id="turnRightBtn">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                            <button class="btn btn-danger" id="stopBtn">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                            <button class="btn" id="backwardBtn">
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
+                        </div>
+                        <div class="speed-control">
+                            <label for="speedSlider">Speed Control:</label>
+                            <input type="range" id="speedSlider" class="speed-slider" min="0" max="100" value="50">
+                            <div class="speed-display">
+                                <span>Speed: <span id="speedValue">50</span>%</span>
+                            </div>
+                        </div>
+                        <div class="mode-selector" style="margin-top: 15px;">
+                            <label>Control Mode:</label>
+                            <select id="controlMode" class="btn">
+                                <option value="manual">Manual</option>
+                                <option value="auto">Auto-Navigate</option>
+                                <option value="follow">Follow Mode</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sensors Section -->
+            <section class="sensors-section">
+                <div class="card">
+                    <h3><i class="fas fa-tachometer-alt"></i> Sensor Dashboard</h3>
+                    <div class="sensor-grid">
+                        <div class="sensor-item">
+                            <div class="sensor-icon">🌡️</div>
+                            <div class="sensor-label">Temperature</div>
+                            <div class="sensor-value" id="tempValue">25.4°C</div>
+                            <div class="sensor-status status-normal">Normal</div>
+                        </div>
+                        <div class="sensor-item">
+                            <div class="sensor-icon">⚡</div>
+                            <div class="sensor-label">Battery</div>
+                            <div class="sensor-value" id="batteryValue">85%</div>
+                            <div class="sensor-status status-normal">Good</div>
+                        </div>
+                        <div class="sensor-item">
+                            <div class="sensor-icon">📶</div>
+                            <div class="sensor-label">Signal</div>
+                            <div class="sensor-value" id="signalValue">-45dBm</div>
+                            <div class="sensor-status status-normal">Strong</div>
+                        </div>
+                        <div class="sensor-item">
+                            <div class="sensor-icon">💾</div>
+                            <div class="sensor-label">Memory</div>
+                            <div class="sensor-value" id="memoryValue">67%</div>
+                            <div class="sensor-status status-normal">OK</div>
+                        </div>
+                        <div class="sensor-item">
+                            <div class="sensor-icon">🔧</div>
+                            <div class="sensor-label">CPU Load</div>
+                            <div class="sensor-value" id="cpuValue">34%</div>
+                            <div class="sensor-status status-normal">Normal</div>
+                        </div>
+                        <div class="sensor-item">
+                            <div class="sensor-icon">📡</div>
+                            <div class="sensor-label">Distance</div>
+                            <div class="sensor-value" id="distanceValue">1.2m</div>
+                            <div class="sensor-status status-normal">Clear</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- System Monitor Section -->
+            <section class="monitor-section">
+                <div class="card">
+                    <h3><i class="fas fa-desktop"></i> System Monitor</h3>
+                    <div class="system-monitor-container">
+                        <div class="monitor-header">
+                            <div class="connection-status connected">
+                                <div class="status-indicator"></div>
+                                <span>Demo Mode Active</span>
+                            </div>
+                            <div class="system-actions">
+                                <button class="btn btn-secondary" id="refreshBtn">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                                <button class="btn btn-danger" id="emergencyStopBtn">
+                                    <i class="fas fa-exclamation-triangle"></i> E-Stop
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="system-stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon">🖥️</div>
+                                <div class="stat-info">
+                                    <div class="stat-label">System Uptime</div>
+                                    <div class="stat-value" id="uptimeValue">2h 34m</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">📊</div>
+                                <div class="stat-info">
+                                    <div class="stat-label">Network Latency</div>
+                                    <div class="stat-value" id="latencyValue">12ms</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">🔄</div>
+                                <div class="stat-info">
+                                    <div class="stat-label">Messages/sec</div>
+                                    <div class="stat-value" id="messagesValue">247</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">💽</div>
+                                <div class="stat-info">
+                                    <div class="stat-label">Disk Usage</div>
+                                    <div class="stat-value" id="diskValue">45%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="system-logs">
+                            <div class="logs-header">
+                                <h4>System Logs</h4>
+                                <div class="log-controls">
+                                    <button class="btn" id="clearLogsBtn">Clear</button>
+                                    <button class="btn" id="pauseLogsBtn">Pause</button>
+                                    <select class="btn" id="logLevelSelect">
+                                        <option value="all">All Levels</option>
+                                        <option value="info">Info</option>
+                                        <option value="warning">Warning</option>
+                                        <option value="error">Error</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="logs-container" id="logsContainer">
+                                <div class="log-entry log-info">
+                                    <span class="log-timestamp">19:23:45</span>
+                                    <span class="log-message">System initialized successfully</span>
+                                </div>
+                                <div class="log-entry log-info">
+                                    <span class="log-timestamp">19:23:46</span>
+                                    <span class="log-message">Camera feed started</span>
+                                </div>
+                                <div class="log-entry log-warning">
+                                    <span class="log-timestamp">19:23:47</span>
+                                    <span class="log-message">ROS2 connection not available - Demo mode active</span>
+                                </div>
+                                <div class="log-entry log-success">
+                                    <span class="log-timestamp">19:23:48</span>
+                                    <span class="log-message">Web interface ready</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- <script src="app.js"></script> -->
+    <!-- The following scripts are for the full ROS2-connected application and conflict with the demo app.js -->
+    <script src="../src/components/ROS2CameraFeed.js"></script>
+    <script src="../src/components/PanTiltControl.js"></script>
+    <script src="../src/components/robot-control.js"></script>
+    <script src="../src/components/ros2-interface.js"></script>
+    <script src="../src/components/sensor-dashboard.js"></script>
+    <script src="../src/components/SystemMonitor.js"></script>
+    <script src="../src/services/ros2-service-manager.js"></script>
+
+    <!-- Initialize camera feed -->
+    <script>
+        // Initialize camera feed
+        const cameraFeed = new ROS2CameraFeed('cameraFeed', 'cameraStatus');
+    </script>
+    
+</body>
+</html>

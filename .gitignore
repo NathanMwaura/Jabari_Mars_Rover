@@ -1,0 +1,41 @@
+# ROS2 build artifacts
+build/
+install/
+log/
+
+# Python
+*.pyc
+__pycache__/
+.venv/
+env/
+venv/
+
+# Node/Vite/Svelte
+node_modules/
+dist/
+*.log
+
+# SvelteKit/Vite
+.svelte-kit/
+.vite/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test/coverage
+coverage/
+*.cover
+*.lcov
+
+# Misc
+*.bak
+*.tmp
+
+# Ignore screenshots or large files in web_app/public/Saves (optional)
+web_app/public/Saves/

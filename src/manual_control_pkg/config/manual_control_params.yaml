@@ -1,0 +1,107 @@
+# JABARI Manual Control Node Configuration
+# This file contains default parameters for the manual control node
+
+# Node namespace (leave empty for global namespace)
+# ros__parameters:
+
+manual_control_node:
+  ros__parameters:
+    # ===== VELOCITY LIMITS =====
+    # Maximum linear velocity in meters per second
+    # Recommended: 0.5-2.0 m/s depending on rover capabilities
+    max_linear_velocity: 1.0
+    
+    # Maximum angular velocity in radians per second  
+    # Recommended: 1.0-3.0 rad/s depending on rover stability
+    max_angular_velocity: 2.0
+    
+    # ===== SAFETY PARAMETERS =====
+    # Command timeout in seconds - rover stops if no command received
+    # Recommended: 1.0-5.0 seconds depending on application
+    command_timeout: 2.0
+    
+    # Deadband threshold - minimum command value to process
+    # Helps filter out noise from joysticks/controllers
+    deadband_threshold: 0.01
+    
+    # ===== LOGGING CONFIGURATION =====
+    # Enable debug logging for detailed information
+    enable_debug_logging: false
+    
+    # Log all velocity commands (can be verbose)
+    log_all_commands: false
+    
+    # ===== ADVANCED PARAMETERS =====
+    # Enable parameter validation on startup
+    validate_parameters: true
+    
+    # Publish status messages
+    publish_status: true
+    
+    # Status publishing frequency in Hz
+    status_frequency: 1.0
+    
+    # ===== TOPIC CONFIGURATION =====
+    # Custom topic names (uncomment to override defaults)
+    # manual_cmd_vel_topic: "/custom_manual_cmd_vel"
+    # emergency_stop_topic: "/custom_emergency_stop"
+    # status_topic: "/custom_manual_control_status"
+    
+    # ===== QoS SETTINGS =====
+    # Quality of Service settings for critical topics
+    qos_reliability: "reliable"  # reliable or best_effort
+    qos_history: "keep_last"     # keep_last or keep_all
+    qos_depth: 10                # Queue depth for messages
+
+# ===== ENVIRONMENT-SPECIFIC CONFIGURATIONS =====
+
+# Development/Testing Configuration
+development:
+  manual_control_node:
+    ros__parameters:
+      max_linear_velocity: 0.3
+      max_angular_velocity: 1.0
+      command_timeout: 5.0
+      enable_debug_logging: true
+      log_all_commands: true
+
+# Simulation Configuration  
+simulation:
+  manual_control_node:
+    ros__parameters:
+      max_linear_velocity: 0.5
+      max_angular_velocity: 1.5
+      command_timeout: 3.0
+      enable_debug_logging: true
+      deadband_threshold: 0.005
+
+# Production/Field Configuration
+production:
+  manual_control_node:
+    ros__parameters:
+      max_linear_velocity: 1.2
+      max_angular_velocity: 2.5
+      command_timeout: 1.5
+      enable_debug_logging: false
+      log_all_commands: false
+      validate_parameters: true
+
+# High Performance Configuration
+high_performance:
+  manual_control_node:
+    ros__parameters:
+      max_linear_velocity: 2.0
+      max_angular_velocity: 3.0
+      command_timeout: 1.0
+      deadband_threshold: 0.02
+      status_frequency: 2.0
+
+# Safety/Conservative Configuration
+safety_mode:
+  manual_control_node:
+    ros__parameters:
+      max_linear_velocity: 0.2
+      max_angular_velocity: 0.5
+      command_timeout: 1.0
+      deadband_threshold: 0.05
+      enable_debug_logging: true

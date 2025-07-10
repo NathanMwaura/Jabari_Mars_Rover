@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>web_interface_pkg</name>
+  <version>1.0.0</version>
+  <description>ROS2 package for streaming camera feed to web interface via WebSocket</description>
+  <maintainer email="user@example.com">maintainer</maintainer>
+  <license>MIT</license>
+
+  <!-- Build dependencies -->
+  <buildtool_depend>ament_python</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+  <!-- Runtime dependencies -->
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
+  <depend>std_msgs</depend>
+
+  <!-- Python dependencies (handled via setup.py) -->
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>python3-websockets</exec_depend>
+  <exec_depend>python3-asyncio</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-base64</exec_depend>
+  <exec_depend>python3-json</exec_depend>
+
+  <!-- Test dependencies -->
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

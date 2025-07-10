@@ -1,0 +1,57 @@
+# Configuration file for Web Interface Package
+# Optimized for Dell Latitude E7440 built-in camera
+
+# Camera settings
+camera_index: 0  # Built-in camera is usually index 0
+frame_width: 640
+frame_height: 480
+fps: 30
+
+# WebSocket server settings
+websocket_host: "localhost"  # Change to "0.0.0.0" to allow external connections
+websocket_port: 8765
+
+# Image processing settings
+publish_compressed: true
+jpeg_quality: 80  # Balance between quality and bandwidth (1-100)
+
+# Advanced camera settings (Dell Latitude E7440 specific)
+camera_settings:
+  autofocus: true
+  auto_exposure: true
+  brightness: 0      # -64 to 64, 0 = auto
+  contrast: 0        # -64 to 64, 0 = auto
+  saturation: 0      # -64 to 64, 0 = auto
+  hue: 0            # -40 to 40, 0 = auto
+  gain: 0           # 0 to 100, 0 = auto
+  
+# Network settings
+network:
+  max_clients: 10
+  ping_interval: 20    # seconds
+  ping_timeout: 10     # seconds
+  max_message_size: 10485760  # 10MB for large images
+
+# Performance settings
+performance:
+  image_queue_size: 10
+  frame_drop_threshold: 5  # Drop frames if queue exceeds this
+  stats_interval: 100      # Log stats every N frames
+  
+# Logging settings
+logging:
+  level: "info"  # debug, info, warn, error
+  enable_frame_logging: false
+  enable_client_logging: true
+
+# ROS2 topic names
+topics:
+  image_raw: "camera/image_raw"
+  image_compressed: "camera/image_raw/compressed"
+  camera_status: "camera/status"
+  
+# Error handling
+error_handling:
+  camera_reconnect_attempts: 5
+  camera_reconnect_delay: 2.0  # seconds
+  websocket_restart_on_error: true
