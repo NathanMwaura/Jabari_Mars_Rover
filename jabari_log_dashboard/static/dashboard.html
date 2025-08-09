@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JABARI Rover - ROS2 Log Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .connection-status {
+            display: inline-block;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .status-connected {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-disconnected {
+            background: #f44336;
+            color: white;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 1fr 450px;
+            gap: 1rem;
+            padding: 1rem;
+            height: calc(100vh - 120px);
+        }
+
+        .log-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .control-group label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        select, input, button {
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        select option {
+            background: #1e3c72;
+            color: white;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .export-btn {
+            background: #4CAF50;
+        }
+
+        .clear-btn {
+            background: #f44336;
+        }
+
+        .log-container {
+            flex: 1;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border-left: 3px solid;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .log-entry.INFO {
+            border-left-color: #2196F3;
+            background: rgba(33, 150, 243, 0.1);
+        }
+
+        .log-entry.WARN {
+            border-left-color: #FF9800;
+            background: rgba(255, 152, 0, 0.1);
+        }
+
+        .log-entry.ERROR {
+            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.1);
+        }
+
+        .log-entry.DEBUG {
+            border-left-color: #9C27B0;
+            background: rgba(156, 39, 176, 0.1);
+        }
+
+        .log-timestamp {
+            color: #90CAF9;
+            font-size: 0.8rem;
+        }
+
+        .log-level {
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            margin-right: 0.5rem;
+            display: inline-block;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .log-source {
+            color: #81C784;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .log-message {
+            color: #ffffff;
+        }
+
+        .log-data {
+            margin-top: 0.3rem;
+            padding: 0.3rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+            font-size: 0.75rem;
+            color: #B0BEC5;
+        }
+
+        .status-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-card h3 {
+            margin-bottom: 0.5rem;
+            color: #81C784;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+        }
+
+        .status-value {
+            font-family: monospace;
+            color: #90CAF9;
+        }
+
+        .chart-container {
+            height: 200px;
+            margin-top: 1rem;
+        }
+
+        .servo-indicator, .motor-indicator {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .servo-gauge, .motor-gauge {
+            flex: 1;
+            text-align: center;
+        }
+
+        .servo-gauge .value, .motor-gauge .value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #81C784;
+        }
+
+        .servo-gauge .label, .motor-gauge .label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .gauge-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #81C784);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .gauge-fill.negative {
+            background: linear-gradient(90deg, #f44336, #ff6b6b);
+        }
+
+        .detection-indicator {
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .detection-active {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+        }
+
+        .detection-inactive {
+            background: rgba(158, 158, 158, 0.2);
+            border: 1px solid #9E9E9E;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+            
+            .status-panel {
+                max-height: 400px;
+            }
+        }
+
+        .search-highlight {
+            background: #FFEB3B;
+            color: #000;
+            padding: 0.1rem 0.2rem;
+            border-radius: 2px;
+        }
+
+        .no-logs {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        .motor-speed-positive {
+            color: #4CAF50;
+        }
+
+        .motor-speed-negative {
+            color: #ff6b6b;
+        }
+
+        .node-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .node-active {
+            background: #4CAF50;
+            box-shadow: 0 0 5px #4CAF50;
+        }
+
+        .node-inactive {
+            background: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 JABARI Rover - ROS2 Log Dashboard</h1>
+        <div id="connectionStatus" class="connection-status status-disconnected">Disconnected</div>
+    </div>
+
+    <div class="dashboard-container">
+        <div class="log-panel">
+            <div class="controls">
+                <div class="control-group">
+                    <label>Log Level Filter</label>
+                    <select id="levelFilter">
+                        <option value="">All Levels</option>
+                        <option value="DEBUG">Debug</option>
+                        <option value="INFO">Info</option>
+                        <option value="WARN">Warning</option>
+                        <option value="ERROR">Error</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Source Filter</label>
+                    <select id="sourceFilter">
+                        <option value="">All Sources</option>
+                        <option value="manual_control">Manual Control</option>
+                        <option value="movement">Movement</option>
+                        <option value="servos">Servos</option>
+                        <option value="motor_controller">Motor Controller</option>
+                        <option value="object_detection">Object Detection</option>
+                        <option value="camera">Camera</option>
+                        <option value="yolo_processor">YOLO Processor</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Search</label>
+                    <input type="text" id="searchInput" placeholder="Search logs...">
+                </div>
+                
+                <button id="clearLogsBtn" class="clear-btn">Clear Logs</button>
+                <button id="exportLogsBtn" class="export-btn">Export Logs</button>
+                <button id="pauseBtn">Pause</button>
+            </div>
+            
+            <div id="logContainer" class="log-container">
+                <div class="no-logs">Waiting for logs...</div>
+            </div>
+        </div>
+
+        <div class="status-panel">
+            <div class="status-card">
+                <h3>Connection Status</h3>
+                <div class="status-item">
+                    <span>WebSocket:</span>
+                    <span id="wsStatus" class="status-value">Connecting...</span>
+                </div>
+                <div class="status-item">
+                    <span>ROS2 Node:</span>
+                    <span id="rosStatus" class="status-value">Unknown</span>
+                </div>
+                <div class="status-item">
+                    <span>Last Update:</span>
+                    <span id="lastUpdate" class="status-value">Never</span>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <h3>Node Status</h3>
+                <div class="status-item">
+                    <span><span id="manualControlNode" class="node-status node-inactive"></span>Manual Control:</span>
+                    <span id="manualControlStatus" class="status-value">Unknown</span>
+                </div>
+                <div class="status-item">
+                    <span><span id="motorControllerNode" class="node-status node-inactive"></span>Motor Controller:</span>
+                    <span id="motorControllerStatus" class="status-value">Unknown</span>
+                </div>
+                <div class="status-item">
+                    <span><span id="objectDetectionNode" class="node-status node-inactive"></span>Object Detection:</span>
+                    <span id="objectDetectionStatus" class="status-value">Unknown</span>
+                </div>
+                <div class="status-item">
+                    <span><span id="cameraNode" class="node-status node-inactive"></span>Camera:</span>
+                    <span id="cameraStatus" class="status-value">Unknown</span>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <h3>Motor Status</h3>
+                <div class="motor-indicator">
+                    <div class="motor-gauge">
+                        <div id="leftMotorValue" class="value">0.00</div>
+                        <div class="gauge-bar"><div id="leftMotorGauge" class="gauge-fill"></div></div>
+                        <div class="label">Left Motor</div>
+                    </div>
+                    <div class="motor-gauge">
+                        <div id="rightMotorValue" class="value">0.00</div>
+                        <div class="gauge-bar"><div id="rightMotorGauge" class="gauge-fill"></div></div>
+                        <div class="label">Right Motor</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <h3>Movement</h3>
+                <div class="status-item">
+                    <span>Linear Vel:</span>
+                    <span id="linearVel" class="status-value">0.00 m/s</span>
+                </div>
+                <div class="status-item">
+                    <span>Angular Vel:</span>
+                    <span id="angularVel" class="status-value">0.00 rad/s</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="velocityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <h3>Servo Positions</h3>
+                <div class="servo-indicator">
+                    <div class="servo-gauge">
+                        <div id="panValue" class="value">90°</div>
+                        <div class="gauge-bar"><div id="panGauge" class="gauge-fill"></div></div>
+                        <div class="label">Pan</div>
+                    </div>
+                    <div class="servo-gauge">
+                        <div id="tiltValue" class="value">90°</div>
+                        <div class="gauge-bar"><div id="tiltGauge" class="gauge-fill"></div></div>
+                        <div class="label">Tilt</div>
+                    </div>
+                    <div class="servo-gauge">
+                        <div id="thirdValue" class="value">90°</div>
+                        <div class="gauge-bar"><div id="thirdGauge" class="gauge-fill"></div></div>
+                        <div class="label">Third</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <h3>Object Detection</h3>
+                <div class="status-item">
+                    <span>Objects Detected:</span>
+                    <span id="detectionCount" class="status-value">0</span>
+                </div>
+                <div class="status-item">
+                    <span>Camera Frames:</span>
+                    <span id="cameraFrames" class="status-value">0</span>
+                </div>
+                <div class="status-item">
+                    <span>Last Detection:</span>
+                    <span id="lastDetectionTime" class="status-value">Never</span>
+                </div>
+                <div id="detectionIndicator" class="detection-indicator detection-inactive">
+                    No Objects Detected
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection
+        const socket = io();
+        
+        // Global state
+        let logs = [];
+        let isPaused = false;
+        let velocityChart = null;
+        let nodeActivity = {};
+        
+        // DOM elements
+        const connectionStatus = document.getElementById('connectionStatus');
+        const logContainer = document.getElementById('logContainer');
+        const levelFilter = document.getElementById('levelFilter');
+        const sourceFilter = document.getElementById('sourceFilter');
+        const searchInput = document.getElementById('searchInput');
+        const pauseBtn = document.getElementById('pauseBtn');
+        
+        // Initialize velocity chart
+        function initVelocityChart() {
+            const ctx = document.getElementById('velocityChart').getContext('2d');
+            velocityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Linear',
+                            data: [],
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Angular',
+                            data: [],
+                            borderColor: '#2196F3',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    },
+                    animation: { duration: 0 }
+                }
+            });
+        }
+        
+        // Socket event handlers
+        socket.on('connect', () => {
+            updateConnectionStatus('Connected', true);
+            document.getElementById('wsStatus').textContent = 'Connected';
+        });
+        
+        socket.on('disconnect', () => {
+            updateConnectionStatus('Disconnected', false);
+            document.getElementById('wsStatus').textContent = 'Disconnected';
+        });
+        
+        socket.on('new_log', (logEntry) => {
+            if (!isPaused) {
+                addLogEntry(logEntry);
+                updateNodeActivity(logEntry.source);
+            }
+        });
+        
+        socket.on('status_update', (status) => {
+            updateSystemStatus(status);
+        });
+        
+        socket.on('logs_cleared', () => {
+            logs = [];
+            renderLogs();
+        });
+        
+        // Update connection status
+        function updateConnectionStatus(status, isConnected) {
+            connectionStatus.textContent = status;
+            connectionStatus.className = `connection-status ${isConnected ? 'status-connected' : 'status-disconnected'}`;
+            document.getElementById('rosStatus').textContent = isConnected ? 'Active' : 'Inactive';
+        }
+        
+        // Track node activity
+        function updateNodeActivity(source) {
+            nodeActivity[source] = Date.now();
+            
+            // Update node status indicators
+            const nodeMap = {
+                'manual_control': 'manualControlNode',
+                'motor_controller': 'motorControllerNode', 
+                'object_detection': 'objectDetectionNode',
+                'camera': 'cameraNode',
+                'yolo_processor': 'objectDetectionNode'
+            };
+            
+            const nodeElement = document.getElementById(nodeMap[source]);
+            if (nodeElement) {
+                nodeElement.className = 'node-status node-active';
+                
+                // Set timeout to mark as inactive after 10 seconds
+                setTimeout(() => {
+                    if (Date.now() - nodeActivity[source] > 9000) {
+                        nodeElement.className = 'node-status node-inactive';
+                    }
+                }, 10000);
+            }
+            
+            // Update status text
+            const statusMap = {
+                'manual_control': 'manualControlStatus',
+                'motor_controller': 'motorControllerStatus',
+                'object_detection': 'objectDetectionStatus',
+                'camera': 'cameraStatus'
+            };
+            
+            const statusElement = document.getElementById(statusMap[source] || statusMap['object_detection']);
+            if (statusElement) {
+                statusElement.textContent = 'Active';
+            }
+        }
+        
+        // Add log entry
+        function addLogEntry(logEntry) {
+            logs.push(logEntry);
+            if (logs.length > 1000) {
+                logs.shift(); // Keep only last 1000 entries
+            }
+            
+            if (shouldShowLog(logEntry)) {
+                renderSingleLog(logEntry);
+                scrollToBottom();
+            }
+        }
+        
+        // Check if log should be shown based on filters
+        function shouldShowLog(logEntry) {
+            const levelFilter = document.getElementById('levelFilter').value;
+            const sourceFilter = document.getElementById('sourceFilter').value;
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (levelFilter && logEntry.level !== levelFilter) return false;
+            if (sourceFilter && !logEntry.source.includes(sourceFilter)) return false;
+            if (searchText && !logEntry.message.toLowerCase().includes(searchText)) return false;
+            
+            return true;
+        }
+        
+        // Render single log entry
+        function renderSingleLog(logEntry) {
+            const logElement = createLogElement(logEntry);
+            logContainer.appendChild(logElement);
+        }
+        
+        // Create log element
+        function createLogElement(logEntry) {
+            const div = document.createElement('div');
+            div.className = `log-entry ${logEntry.level}`;
+            
+            const searchText = searchInput.value;
+            let message = logEntry.message;
+            if (searchText) {
+                message = highlightSearch(message, searchText);
+            }
+            
+            div.innerHTML = `
+                <span class="log-timestamp">[${logEntry.time_str}]</span>
+                <span class="log-level ${logEntry.level}">${logEntry.level}</span>
+                <span class="log-source">${logEntry.source}:</span>
+                <span class="log-message">${message}</span>
+                ${Object.keys(logEntry.data).length > 0 ? `<div class="log-data">${JSON.stringify(logEntry.data, null, 2)}</div>` : ''}
+            `;
+            
+            return div;
+        }
+        
+        // Highlight search terms
+        function highlightSearch(text, search) {
+            if (!search) return text;
+            const regex = new RegExp(`(${search})`, 'gi');
+            return text.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+        
+        // Render all logs
+        function renderLogs() {
+            logContainer.innerHTML = '';
+            
+            if (logs.length === 0) {
+                logContainer.innerHTML = '<div class="no-logs">No logs available</div>';
+                return;
+            }
+            
+            const filteredLogs = logs.filter(shouldShowLog);
+            
+            if (filteredLogs.length === 0) {
+                logContainer.innerHTML = '<div class="no-logs">No logs match current filters</div>';
+                return;
+            }
+            
+            filteredLogs.slice(-100).forEach(logEntry => {
+                renderSingleLog(logEntry);
+            });
+            
+            scrollToBottom();
+        }
+        
+        // Scroll to bottom of log container
+        function scrollToBottom() {
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // Update system status
+        function updateSystemStatus(status) {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+            
+            if (status.joystick_enabled !== undefined) {
+                document.getElementById('manualControlStatus').textContent = status.joystick_enabled ? 'Enabled' : 'Disabled';
+            }
+            
+            if (status.emergency_stop_active !== undefined) {
+                const emergencyEl = document.getElementById('emergencyStatus');
+                if (emergencyEl) {
+                    emergencyEl.textContent = status.emergency_stop_active ? 'ACTIVE' : 'Clear';
+                    emergencyEl.style.color = status.emergency_stop_active ? '#f44336' : '#4CAF50';
+                }
+            }
+            
+            if (status.drive_mode !== undefined) {
+                const driveModeEl = document.getElementById('driveMode');
+                if (driveModeEl) {
+                    driveModeEl.textContent = status.drive_mode.toUpperCase();
+                }
+            }
+            
+            if (status.movement) {
+                document.getElementById('linearVel').textContent = `${status.movement.linear_velocity.toFixed(2)} m/s`;
+                document.getElementById('angularVel').textContent = `${status.movement.angular_velocity.toFixed(2)} rad/s`;
+                
+                // Update velocity chart
+                updateVelocityChart(status.movement.linear_velocity, status.movement.angular_velocity);
+            }
+            
+            if (status.servos) {
+                updateServoDisplay('pan', status.servos.pan_angle);
+                updateServoDisplay('tilt', status.servos.tilt_angle);
+                updateServoDisplay('third', status.servos.third_angle);
+            }
+            
+            // Handle motor status updates
+            if (status.motor_left !== undefined) {
+                updateMotorDisplay('left', status.motor_left);
+            }
+            
+            if (status.motor_right !== undefined) {
+                updateMotorDisplay('right', status.motor_right);
+            }
+            
+            // Handle object detection status
+            if (status.object_detection) {
+                const detection = status.object_detection;
+                document.getElementById('detectionCount').textContent = detection.count;
+                document.getElementById('lastDetectionTime').textContent = new Date(detection.timestamp * 1000).toLocaleTimeString();
+                
+                const indicator = document.getElementById('detectionIndicator');
+                if (detection.count > 0) {
+                    indicator.className = 'detection-indicator detection-active';
+                    indicator.textContent = `${detection.count} Object${detection.count > 1 ? 's' : ''} Detected`;
+                } else {
+                    indicator.className = 'detection-indicator detection-inactive';
+                    indicator.textContent = 'No Objects Detected';
+                }
+            }
+            
+            // Handle camera status
+            if (status.camera) {
+                document.getElementById('cameraFrames').textContent = status.camera.frame_count;
+                document.getElementById('cameraStatus').textContent = `${status.camera.resolution} (${status.camera.encoding})`;
+            }
+        }
+        
+        // Update velocity chart
+        function updateVelocityChart(linear, angular) {
+            if (!velocityChart) return;
+            
+            const now = new Date().toLocaleTimeString();
+            const data = velocityChart.data;
+            
+            // Add new data
+            data.labels.push(now);
+            data.datasets[0].data.push(linear);
+            data.datasets[1].data.push(angular);
+            
+            // Keep only last 20 points
+            if (data.labels.length > 20) {
+                data.labels.shift();
+                data.datasets[0].data.shift();
+                data.datasets[1].data.shift();
+            }
+            
+            velocityChart.update();
+        }
+        
+        // Update servo display
+        function updateServoDisplay(servo, angle) {
+            const valueEl = document.getElementById(`${servo}Value`);
+            const gaugeEl = document.getElementById(`${servo}Gauge`);
+            
+            if (valueEl && gaugeEl) {
+                valueEl.textContent = `${angle.toFixed(0)}°`;
+                const percentage = (angle / 180) * 100;
+                gaugeEl.style.width = `${percentage}%`;
+            }
+        }
+        
+        // Update motor display
+        function updateMotorDisplay(motor, speed) {
+            const valueEl = document.getElementById(`${motor}MotorValue`);
+            const gaugeEl = document.getElementById(`${motor}MotorGauge`);
+            
+            if (valueEl && gaugeEl) {
+                valueEl.textContent = speed.toFixed(2);
+                valueEl.className = `value ${speed >= 0 ? 'motor-speed-positive' : 'motor-speed-negative'}`;
+                
+                const percentage = Math.abs(speed) * 100;
+                gaugeEl.style.width = `${percentage}%`;
+                gaugeEl.className = `gauge-fill ${speed < 0 ? 'negative' : ''}`;
+            }
+        }
+        
+        // Event listeners
+        levelFilter.addEventListener('change', renderLogs);
+        sourceFilter.addEventListener('change', renderLogs);
+        searchInput.addEventListener('input', renderLogs);
+        
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+            pauseBtn.style.background = isPaused ? '#4CAF50' : 'rgba(255, 255, 255, 0.2)';
+        });
+        
+        document.getElementById('clearLogsBtn').addEventListener('click', () => {
+            if (confirm('Clear all logs?')) {
+                socket.emit('clear_logs');
+            }
+        });
+        
+        document.getElementById('exportLogsBtn').addEventListener('click', () => {
+            exportLogs();
+        });
+        
+        // Export logs functionality
+        function exportLogs() {
+            const filteredLogs = logs.filter(shouldShowLog);
+            const logText = filteredLogs.map(log => {
+                let line = `[${log.time_str}] ${log.level} ${log.source}: ${log.message}`;
+                if (Object.keys(log.data).length > 0) {
+                    line += `\nData: ${JSON.stringify(log.data, null, 2)}`;
+                }
+                return line;
+            }).join('\n\n');
+            
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ros2_logs_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'f':
+                        e.preventDefault();
+                        searchInput.focus();
+                        break;
+                    case 'l':
+                        e.preventDefault();
+                        if (confirm('Clear all logs?')) {
+                            socket.emit('clear_logs');
+                        }
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        exportLogs();
+                        break;
+                    case ' ':
+                        e.preventDefault();
+                        pauseBtn.click();
+                        break;
+                }
+            }
+        });
+        
+        // Auto-refresh status every 5 seconds
+        setInterval(() => {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(status => {
+                    if (Object.keys(status).length > 0) {
+                        updateSystemStatus(status);
+                    }
+                })
+                .catch(error => {
+                    console.warn('Failed to fetch status:', error);
+                });
+        }, 5000);
+        
+        // Check node activity periodically
+        setInterval(() => {
+            const now = Date.now();
+            Object.keys(nodeActivity).forEach(source => {
+                if (now - nodeActivity[source] > 10000) { // 10 seconds timeout
+                    const nodeMap = {
+                        'manual_control': 'manualControlNode',
+                        'motor_controller': 'motorControllerNode', 
+                        'object_detection': 'objectDetectionNode',
+                        'camera': 'cameraNode'
+                    };
+                    
+                    const nodeElement = document.getElementById(nodeMap[source]);
+                    if (nodeElement) {
+                        nodeElement.className = 'node-status node-inactive';
+                    }
+                }
+            });
+        }, 2000);
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initVelocityChart();
+            
+            // Load initial logs
+            fetch('/api/logs?count=50')
+                .then(response => response.json())
+                .then(initialLogs => {
+                    logs = initialLogs;
+                    renderLogs();
+                })
+                .catch(error => {
+                    console.warn('Failed to load initial logs:', error);
+                });
+        });
+        
+        // Add some visual feedback for interactions
+        document.querySelectorAll('button, select, input').forEach(element => {
+            element.addEventListener('focus', () => {
+                element.style.boxShadow = '0 0 10px rgba(255, 255, 255, 0.3)';
+            });
+            
+            element.addEventListener('blur', () => {
+                element.style.boxShadow = 'none';
+            });
+        });
+        
+        // Show keyboard shortcuts tooltip
+        function showKeyboardHelp() {
+            alert(`Keyboard Shortcuts:
+            
+Ctrl/Cmd + F: Focus search
+Ctrl/Cmd + L: Clear logs  
+Ctrl/Cmd + S: Export logs
+Ctrl/Cmd + Space: Pause/Resume
+
+Node Status Indicators:
+🟢 Green: Active (recent activity)
+🔴 Red: Inactive (no recent activity)
+
+Click any control for more options!`);
+        }
+        
+        // Add help button functionality (can be triggered by clicking the title)
+        document.querySelector('h1').addEventListener('dblclick', showKeyboardHelp);
+        
+        // Add responsive behavior for mobile
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                document.querySelector('.dashboard-container').style.gridTemplateColumns = '1fr';
+                document.querySelector('.status-panel').style.maxHeight = '400px';
+            } else {
+                document.querySelector('.dashboard-container').style.gridTemplateColumns = '1fr 450px';
+                document.querySelector('.status-panel').style.maxHeight = 'none';
+            }
+        }
+        
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial call
+    </script>
+</body>
+</html>
